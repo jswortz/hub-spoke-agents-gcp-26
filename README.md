@@ -6,9 +6,18 @@ This repository outlines the steps to deploy an agent in a spoke project and hav
 
 ## Architecture Overview
 
-- **Hub Project**: `wortz-project-352116` (hosts the App Hub and Agent Registry)
-- **Spoke Project**: `agent-spoke` (hosts the deployed Reasoning Engine agent)
-- **Boundary**: Project-level attachment (Spoke project attached to Hub project's App Hub)
+There are two verified deployment options for cross-project agent discovery:
+
+### Option A: Folder-Level Boundary (Recommended for Automation)
+- **Folder**: `Agent Registry Workshop` (`folders/187501181465`) containing both projects.
+- **Management Project (Hub)**: `google-mpf-ts8stlb51ana` (automatically created by GCP to manage the folder boundary).
+- **Spoke Project**: `agent-spoke` (where agents are deployed).
+- **Discovery**: Automatic. Any agent deployed in any project under this folder is automatically discovered.
+
+### Option B: Project-Level Boundary (Manual Attachment)
+- **Hub Project**: `wortz-project-352116` (manually configured as App Hub Host).
+- **Spoke Project**: `agent-spoke` (where agents are deployed).
+- **Discovery**: Manual. The spoke project must be explicitly attached to the hub project.
 
 ## Setup Steps
 
@@ -31,7 +40,13 @@ python3 src/deploy/deploy_agents.py
 
 ### 2. Configure App Hub Boundary
 
-Attach the spoke project (`agent-spoke`) to the host project (`wortz-project-352116`) App Hub.
+Configure the App Hub boundary using one of the following options:
+
+#### Option A: Folder-Level Boundary (Recommended)
+No command is required to attach the spoke project to the hub. When Application Management is enabled on the parent folder (`folders/187501181465`), GCP automatically provisions a dedicated system-managed project (`google-mpf-ts8stlb51ana`) that acts as the boundary host. All projects inside this folder are automatically boundary-attached.
+
+#### Option B: Project-Level Boundary (Manual Attachment)
+Manually attach the spoke project (`agent-spoke`) to your user-owned hub project (`wortz-project-352116`).
 
 **Command (Run from Hub Project context):**
 ```bash
@@ -39,14 +54,21 @@ gcloud apphub service-projects add agent-spoke \
     --project=wortz-project-352116
 ```
 
-*Note: The command `gcloud apphub service-projects add` attaches the spoke project (e.g., `agent-spoke`) to the host project. Folder-level boundary setup was attempted but failed on the backend; project-level attachment was used as a successful fallback.*
+---
 
-### 3. Verify Discovery in Hub Project
+### 3. Verify Discovery
 
-Once attached, App Hub will automatically discover the Reasoning Engine in the spoke project. It might take a few minutes.
+Once the boundary is active, App Hub will automatically discover the Reasoning Engine in the spoke project. It might take a few minutes.
 
 **Command to list discovered workloads (e.g., in `us-west1`):**
 ```bash
+# For Option A (Folder-level):
+gcloud apphub discovered-workloads list \
+    --project=google-mpf-ts8stlb51ana \
+    --location=us-west1 \
+    --filter="workloadReference.uri:aiplatform.googleapis.com"
+
+# For Option B (Project-level):
 gcloud apphub discovered-workloads list \
     --project=wortz-project-352116 \
     --location=us-west1 \
@@ -55,12 +77,20 @@ gcloud apphub discovered-workloads list \
 
 *Note: The location must match the region where the agent was deployed (e.g., `us-west1`).*
 
-### 4. Search Agent Registry from Hub Project
+---
 
-Verify that the discovered agent is visible and searchable in the Hub project's Agent Registry.
+### 4. Search Agent Registry
+
+Verify that the discovered agent is visible and searchable in the Agent Registry.
 
 **Command:**
 ```bash
+# For Option A (Folder-level):
+gcloud alpha agent-registry agents search \
+    --project=google-mpf-ts8stlb51ana \
+    --location=us-west1
+
+# For Option B (Project-level):
 gcloud alpha agent-registry agents search \
     --project=wortz-project-352116 \
     --location=us-west1

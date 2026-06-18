@@ -11,7 +11,7 @@ if [[ $PROJECT_HUB =~ ^google-mp ]]; then
   echo "Detected Folder-Managed Project (Option A). Skipping manual attachments check."
 else
   echo "=== Checking App Hub Project Attachment (Option B) ==="
-  gcloud apphub service-project-attachments list --project=${PROJECT_HUB}
+  gcloud apphub service-projects list --project=${PROJECT_HUB}
 fi
 
 echo "=== Checking Discovered Workloads ==="
